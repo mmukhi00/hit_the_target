@@ -24,7 +24,9 @@ function RandomNumber(props) {
 export default RandomNumber;
 const styles = StyleSheet.create({
   random: {
-    backgroundColor: "white",
+    backgroundColor: "grey",
+    borderRadius:10,
+    // borderColor:"pink",
     width: 100,
     marginHorizontal: 15,
     marginVertical: 25,

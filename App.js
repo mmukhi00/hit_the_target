@@ -3,8 +3,8 @@ import Game from "./component/Game";
 import React, { useState, useRef } from "react";
 export default function App() {
   const [playCount, setplayCount] = useState(0);
-   const won = useRef(-1);
-   const lost = useRef(0);
+  const [won, setWon] = useState(0);
+  const gameStatusRef = useRef();
   const playAgain = () => {
     // console.warn("playagain")
     setplayCount((pre) => {
@@ -15,11 +15,10 @@ export default function App() {
     <View style={styles.container}>
       <Game
         key={playCount}
-        won={won}
-        lost={lost}
         randomNumberSet={6}
         timer={10}
         playAgain={playAgain}
+        gameStatusRef={gameStatusRef}
       />
     </View>
   );

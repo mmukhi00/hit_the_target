@@ -1,20 +1,39 @@
 import React, { Component, useState, useEffect, useRef } from "react";
-import { View, StyleSheet, Text,Button } from "react-native";
+import { View, StyleSheet, Text, Button } from "react-native";
 import RandomNumber from "./RandomNumber";
+import GameStatus from "./GameStatus";
 function Game(props) {
   // 10+Math.floor(40*Math.random())
   const [selectNumber, setSelectNumber] = useState([]);
   const [randomNumbers, setrandomNumbers] = useState([]);
   const [timer, setTimer] = useState(-1);
-  const[played,setPlayed]=useState(false);
- 
+  const [status, setStatus] = useState("playing");
+  const [won, setWon] = useState(0);
+  const [lost, setLost] = useState(0);
+  const [gameContinue, setContinue] = useState("null");
+  const [randomNumberSet, setrandomNumbersSet] = useState(
+    props.randomNumberSet
+  );
   useEffect(() => {
+    if (won === 5) {
+      console.warn("in condition");
+      setrandomNumbersSet((pre) => {
+        return pre + 3;
+      });
+    }
     setrandomNumbers(
-      Array.from({ length: props.randomNumberSet }).map(
+      Array.from({ length: randomNumberSet }).map(
         () => 1 + Math.floor(10 * Math.random())
       )
     );
-  }, []);
+    console.warn("randomNumbers:" + randomNumbers);
+    if (gameContinue == "continue") {
+      setSelectNumber([]);
+      setTimer(props.timer);
+      setStatus("playing");
+    }
+  }, [gameContinue]);
+
   useEffect(() => {
     if (timer == -1) setTimer(props.timer);
     let interval = setInterval(() => {
@@ -22,54 +41,74 @@ function Game(props) {
         return pre - 1;
       });
     }, 1000);
+    if (status === "won") {
+      setTimer(0);
+      setWon((pre) => {
+        return pre + 1;
+      });
+      clearInterval(interval);
+      setContinue("null");
+    }
+    if (status === "lost") {
+      setTimer(0);
+      setLost((pre) => {
+        return pre + 1;
+      });
+      clearInterval(interval);
+      setContinue("null");
+    }
     if (timer === 0) clearInterval(interval);
-
     return () => clearInterval(interval);
   }, [timer]);
 
+  useEffect(() => {
+    if (selectNumber.length == 0) setStatus("playing");
+    else {
+      const status = gameStatus();
+      setStatus(status);
+    }
+  }, [selectNumber]);
+
+  // create target number
   const target = randomNumbers
     .slice(0, props.randomNumberSet - 2)
     .reduce((acc, crr) => acc + crr, 0);
+
+  // set selected number in state
   const numberSelected = (numberIndex) => {
     setSelectNumber((pre) => {
       return [...pre, numberIndex];
     });
   };
 
+  // check if given index number is selected
   const isNumberSelected = (numberindex) => {
     return selectNumber.indexOf(numberindex) >= 0;
   };
 
+  // change color of target and return status
   const gameStatus = () => {
     const sum = selectNumber.reduce((acc, cur) => {
-      // console.warn("cur:" + cur);
-      // console.warn("acc: " + acc);
       return acc + randomNumbers[cur];
     }, 0);
-    if (selectNumber.length==0&&timer == 0) {
-      return "lost";
-    }
-    if (sum === target) {
-      props.won.current=props.won.current+1;
-      console.warn(props.won.current);
-      return "won";
-    }
-    if (sum > target) {
+    if (selectNumber.length == 0 && timer == 0) {
       return "lost";
     }
     if (sum < target) {
       return "playing";
     }
+    if (sum === target) {
+      return "won";
+    }
+    if (sum > target) {
+      return "lost";
+    }
   };
 
-  // const result=()=>{
-  //   gameStatus()
-  // }
-  
   return (
     <View style={styles.container}>
-      <View style={[styles.gameConatiner, timer == 0 && styles.disable]}>
-        <Text style={[styles.target, styles[`status_${gameStatus()}`]]}>
+      <View style={[won<5?styles.gameConatiner:styles.expandGameConatiner, timer == 0 && styles.disable]}>
+        <Text style={[styles.target, styles[`status_${status}`]]}>
           {target}
         </Text>
         <View style={styles.randomContainer}>
@@ -86,12 +125,15 @@ function Game(props) {
       </View>
       <View style={styles.timeAndResult}>
         <Text style={styles.timer}>{timer}</Text>
-        <View style={styles.result}>
-          <Text>Lost</Text>
-          <Text>Won {props.won.current}</Text>
-        </View>
+        {gameStatus() !== "playing" && <GameStatus won={won} lost={lost} />}
         {timer == 0 && (
-          <Button title="Play Again" onPress={props.playAgain}></Button>
+          <View style={styles.buttons}>
+            <Button title="Play Again" onPress={props.playAgain}></Button>
+            <Button
+              title="continue"
+              onPress={() => setContinue("continue")}
+            ></Button>
+          </View>
         )}
       </View>
     </View>
@@ -106,7 +148,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   target: {
-    // backgroundColor: "yellow",
     fontSize: 50,
     margin: 50,
     textAlign: "center",
@@ -141,34 +182,38 @@ const styles = StyleSheet.create({
     backgroundColor: "yellow",
     justifyContent: "space-around",
     alignItems: "center",
-    height:100
+    height: 100,
   },
   timer: {
-    backgroundColor: "#ddd",
-    borderColor: "black",
-    borderStyle: "dashed",
+    // backgroundColor: "#ddd",
+    color: "white",
     borderRadius: 10,
-    fontSize: 30,
+    fontSize: 40,
     width: 100,
     textAlign: "center",
     marginLeft: 150,
-    // marginBottom: 250,
     padding: 10,
-    margin: 40,
-    // flex:1
+    // margin: 40,
   },
   disable: {
     opacity: 0.5,
   },
   gameConatiner: {
-    flex: 1,
-    backgroundColor: "#333",
-    height:20
+    flex:1,
+  },
+  expandGameConatiner:{
+    flex:2
   },
   timeAndResult: {
-    flex:1,
+    flex: 1,
     backgroundColor: "#333",
-    // alignItems:"center"
-    justifyContent:"space-around"
+    justifyContent: "space-around",
+  },
+  buttons: {
+    margin: 10,
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
   },
 });
